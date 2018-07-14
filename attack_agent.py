@@ -65,19 +65,7 @@ KILL_BUILDING_REWARD = 0.5
 BUILDING_DEATH_REWARD = -0.5
 
 
-#class ActionHandler:
-#	def __init__(self):
-#		self.smart_actions = [ACTION_DO_NOTHING]
-#
-#	def fillActionArray():
-#		# If we are about to be supply blocked, add 'build supply depot' to list
-#		# If we have idle scv's, build scv's
-#		# If buildings are idle, build units
-#		# If we dont have gas, build refinery
-#		# If we have lots of minerals, build command center
-#		# If we have a command center, build a second barracks
-#		# If we have 2 barracks, build a factory
-#		if 
+
 
 
 class AttackAgent(base_agent.BaseAgent):
@@ -104,6 +92,7 @@ class AttackAgent(base_agent.BaseAgent):
 		# If we have 2 barracks, build a factory
 
 		smart_actions.append(ACTION_DO_NOTHING)
+		#smart_actions.append(AC)
 
 		# if food supply is within range of food cap
 
@@ -178,6 +167,7 @@ class AttackAgent(base_agent.BaseAgent):
 
 		fillActionArray()
 
+# Use Q table to choose action
 		rl_action = self.qlearn.choose_action(str(current_state))
 		smart_action = smart_actions[rl_action]
 
@@ -203,7 +193,7 @@ class AttackAgent(base_agent.BaseAgent):
 				target = [unit_x[i], unit_y[i]]
 
 				return actions.FunctionCall(_SELECT_POINT, [_NOT_QUEUED, target])
-#		Build the supply depot
+#	Needs supply depot to be built in a randomish position
 		elif smart_action == ACTION_BUILD_SUPPLY_DEPOT:
 			if _BUILD_SUPPLY_DEPOT in obs.observation['available_actions']:
 				unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
@@ -233,6 +223,7 @@ class AttackAgent(base_agent.BaseAgent):
 #		
 #				return actions.FunctionCall(_SELECT_POINT, [_NOT_QUEUED, target])
 #		
+
 		elif smart_action == ACTION_BUILD_MARINE:
 			unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
 			unit_y, unit_x = (unit_type == _TERRAN_BARRACKS).nonzero()
