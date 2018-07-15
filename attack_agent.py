@@ -13,7 +13,9 @@ _SELECT_POINT = actions.FUNCTIONS.select_point.id
 _BUILD_SUPPLY_DEPOT = actions.FUNCTIONS.Build_SupplyDepot_screen.id
 _BUILD_BARRACKS = actions.FUNCTIONS.Build_Barracks_screen.id
 _TRAIN_MARINE = actions.FUNCTIONS.Train_Marine_quick.id
+_TRAIN_SCV = actions.FUNCTIONS.Train_SCV_quick.id
 _SELECT_ARMY = actions.FUNCTIONS.select_army.id
+_SELECT_IDLE_SCV = actions.FUNCTIONS.select_idle_worker.id
 _ATTACK_MINIMAP = actions.FUNCTIONS.Attack_minimap.id
 
 _PLAYER_RELATIVE = features.SCREEN_FEATURES.player_relative.index
@@ -42,16 +44,21 @@ ACTION_SELECT_BARRACKS = 'selectbarracks'
 ACTION_BUILD_MARINE = 'buildmarine'
 ACTION_SELECT_ARMY = 'selectarmy'
 ACTION_ATTACK = 'attack'
+ACTION_SELECT_IDLE_SCV = 'selectidlescv'
+ACTION_BUILD_SCV = 'buildscv'
 
-smart_actions = []
-#	ACTION_DO_NOTHING,
-#	ACTION_SELECT_SCV,
-#	ACTION_BUILD_SUPPLY_DEPOT,
-#	ACTION_BUILD_BARRACKS,
-#	ACTION_SELECT_BARRACKS,
-#	ACTION_BUILD_MARINE,
-#	ACTION_SELECT_ARMY,
-#]
+
+smart_actions = [
+	ACTION_DO_NOTHING,
+	ACTION_SELECT_SCV,
+	ACTION_BUILD_SUPPLY_DEPOT,
+	ACTION_BUILD_BARRACKS,
+	ACTION_SELECT_BARRACKS,
+	ACTION_BUILD_MARINE,
+	ACTION_SELECT_ARMY,
+	ACTION_SELECT_IDLE_SCV,
+	ACTION_BUILD_SCV 
+]
 
 for mm_x in range(0, 64):
 	for mm_y in range(0,64):
@@ -79,9 +86,9 @@ class AttackAgent(base_agent.BaseAgent):
 
 		self.previous_action = None
 		self.previous_state = None
-		self.barracks_built = False
+		self.barracks_built = 0
 
-	def fillActionArray():
+	# def fillActionArray(self):
 		### REMEMBER TO EMPTY LIST EVERY STEP WITH THIS METHOD ###
 		# If we are about to be supply blocked, add 'build supply depot' to list
 		# If we have idle scv's, build scv's
@@ -91,16 +98,16 @@ class AttackAgent(base_agent.BaseAgent):
 		# If we have a command center, build a second barracks
 		# If we have 2 barracks, build a factory
 
-		smart_actions.append(ACTION_DO_NOTHING)
+	#	smart_actions.append(ACTION_DO_NOTHING)
 		#smart_actions.append(AC)
 
 		# if food supply is within range of food cap
 
-		if obs.observation['player'][3] - 3 > obs.observation['player'][4]:
-			smart_actions.append(ACTION_BUILD_SUPPLY_DEPOT)
+	#	if (obs.observation['player'][3] - 3) > (obs.observation['player'][4]):
+	#		smart_actions.append(ACTION_BUILD_SUPPLY_DEPOT)
 
-		if self.barracks_built == False:
-			smart_actions.append(ACTION_BUILD_BARRACKS)
+	#	if self.barracks_built < 1:
+	#		smart_actions.append(ACTION_BUILD_BARRACKS)
 
 	def transformDistance(self, x, x_distance, y, y_distance):
 		if not self.base_top_left:
@@ -165,7 +172,7 @@ class AttackAgent(base_agent.BaseAgent):
 
 			self.qlearn.learn(str(self.previous_state), self.previous_action, reward, str(current_state))
 
-		fillActionArray()
+#		self.fillActionArray()
 
 # Use Q table to choose action
 		rl_action = self.qlearn.choose_action(str(current_state))
@@ -204,6 +211,18 @@ class AttackAgent(base_agent.BaseAgent):
 
 					return actions.FunctionCall(_BUILD_SUPPLY_DEPOT, [_NOT_QUEUED, target])
 
+		elif smart_action == ACTION_BUILD_SCV:
+			unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
+			unit_y, unit_x = (unit_type == _TERRAN_COMMANDCENTER).nonzero()
+			target = [unit_x[0], unit_y[0]]
+			actions.FunctionCall(_SELECT_POINT, [_NOT_QUEUED, target])
+
+			if _TRAIN_SCV in obs.observation['available_actions']:
+				return actions.FunctionCall(_TRAIN_SCV, [_QUEUED])
+
+#			if unit_y.any():
+#				target = self.transformDistance(int(unit_x.mean()), 0, int(unit_y.mean()), 20)
+
 		elif smart_action == ACTION_BUILD_BARRACKS:
 			if _BUILD_BARRACKS in obs.observation['available_actions']:
 				unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
@@ -214,15 +233,15 @@ class AttackAgent(base_agent.BaseAgent):
 					self.barracks_built = True
 					return actions.FunctionCall(_BUILD_BARRACKS, [_NOT_QUEUED, target])
 	
-#		elif smart_action == ACTION_SELECT_BARRACKS:
-#			unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
-#			unit_y, unit_x = (unit_type == _TERRAN_BARRACKS).nonzero()
-#				
-#			if unit_y.any():
-#				target = [int(unit_x.mean()), int(unit_y.mean())]
-#		
-#				return actions.FunctionCall(_SELECT_POINT, [_NOT_QUEUED, target])
-#		
+		elif smart_action == ACTION_SELECT_BARRACKS:
+			unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
+			unit_y, unit_x = (unit_type == _TERRAN_BARRACKS).nonzero()
+				
+			if unit_y.any():
+				target = [int(unit_x.mean()), int(unit_y.mean())]
+		
+				return actions.FunctionCall(_SELECT_POINT, [_NOT_QUEUED, target])
+		
 
 		elif smart_action == ACTION_BUILD_MARINE:
 			unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
@@ -244,7 +263,11 @@ class AttackAgent(base_agent.BaseAgent):
 			if obs.observation['single_select'][0][0] != _TERRAN_SCV and _ATTACK_MINIMAP in obs.observation['available_actions']:
 				return actions.FunctionCall(_ATTACK_MINIMAP, [_NOT_QUEUED, self.transformLocation(int(x), int(y))])
 
-		smart_actions.clear()
+		elif smart_action == ACTION_SELECT_IDLE_SCV:
+			if _SELECT_IDLE_SCV in obs.observation['available_actions']:
+				actions.FunctionCall(_SELECT_IDLE_SCV, [_NOT_QUEUED])
+
+
 		return actions.FunctionCall(_NO_OP, [])
 
 class QLearningTable:
