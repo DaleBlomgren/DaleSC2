@@ -175,7 +175,7 @@ class AttackAgent(base_agent.BaseAgent):
 #		self.fillActionArray()
 
 # Use Q table to choose action
-		rl_action = self.qlearn.choose_action(str(current_state))
+		rl_action = self.qlearn.choose_action(str(current_state)) #Not sure current state gives proper information
 		smart_action = smart_actions[rl_action]
 
 		self.previous_killed_unit_score = killed_unit_score
@@ -207,17 +207,22 @@ class AttackAgent(base_agent.BaseAgent):
 				unit_y, unit_x = (unit_type == _TERRAN_COMMANDCENTER).nonzero()
 
 				if unit_y.any():
-					target = self.transformDistance(int(unit_x.mean()), 0, int(unit_y.mean()), 20)
+					#target = self.transformDistance(int(unit_x.mean()), 0, int(unit_y.mean()), 20)
+					target = self.transformDistance(int(unit_x.mean()), np.random.choice(30), int(unit_y.mean()), np.random.choice(30))
 
 					return actions.FunctionCall(_BUILD_SUPPLY_DEPOT, [_NOT_QUEUED, target])
 
 		elif smart_action == ACTION_BUILD_SCV:
+			print("Action select: Build SCV\n")
 			unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
 			unit_y, unit_x = (unit_type == _TERRAN_COMMANDCENTER).nonzero()
-			target = [unit_x[0], unit_y[0]]
-			actions.FunctionCall(_SELECT_POINT, [_NOT_QUEUED, target])
+
+			if unit_y.any():
+				target = [int(unit_x.mean()), int(unit_y.mean())]
+				actions.FunctionCall(_SELECT_POINT, [_NOT_QUEUED, target])
 
 			if _TRAIN_SCV in obs.observation['available_actions']:
+				print("FunctionCall: Train SCV")
 				return actions.FunctionCall(_TRAIN_SCV, [_QUEUED])
 
 #			if unit_y.any():
@@ -229,7 +234,7 @@ class AttackAgent(base_agent.BaseAgent):
 				unit_y, unit_x = (unit_type == _TERRAN_COMMANDCENTER).nonzero()
 				
 				if unit_y.any():
-					target = self.transformDistance(int(unit_x.mean()), 20, int(unit_y.mean()), 0)
+					target = self.transformDistance(int(unit_x.mean()), np.random.choice(30), int(unit_y.mean()), np.random.choice(30))
 					self.barracks_built = True
 					return actions.FunctionCall(_BUILD_BARRACKS, [_NOT_QUEUED, target])
 	
